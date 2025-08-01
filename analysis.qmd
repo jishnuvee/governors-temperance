@@ -103,28 +103,184 @@ tribble(
 
 * Take a look at our fitted model. Use `tidy()` to examine the confidence intervals of the parameters. Are they any changes we might consider making?
 
+```{r}
+fit_causal |>
+  tidy(conf.int = TRUE)
 
+```
+
+
+We should ignore the 3rd party b/cuz the conf.int crosses zero - keep model as is 
 
 * Use AI to create a nice looking table of the parameter values. (Only work on this question if your group is going very fast and has extra time.)
 
 
+
+```{r}
+library(broom)       # for tidy()
+library(knitr)       # for kable()
+library(kableExtra)  # for styling
+
+# Tidy model output with confidence intervals
+tbl <- fit_causal |>
+  tidy(conf.int = TRUE)
+
+# Create LaTeX table
+tbl |>
+  mutate(
+    term = recode(term,
+                  "(Intercept)" = "Intercept",
+                  "election_resultWin" = "Election Result (Win)",
+                  "win_margin" = "Win Margin",
+                  "election_age" = "Election Age",
+                  "partyRepublican" = "Party (Republican)",
+                  "partyThird party" = "Party (Third Party)"),
+    p.value = ifelse(p.value < 0.001, "<0.001",
+                     sprintf("%.3f", p.value))
+  ) |>
+  kable(format = "latex", booktabs = TRUE,
+        col.names = c("Term", "Estimate", "Std. Error",
+                      "t-Statistic", "p-Value",
+                      "95% CI Low", "95% CI High"),
+        digits = 3,
+        caption = "Linear Regression Parameter Estimates") |>
+  kable_styling(latex_options = c("hold_position", "striped", "scale_down"))
+
+```
+
 * Use AI to create LaTeX code for our DGM. (Only work on this question if your group is going very fast and has extra time.)
+
+
+$$
+\text{lived\_after}_i =
+67.5647
++ 8.6345 \cdot \text{election\_resultWin}_i
+- 1.4598 \cdot \text{win\_margin}_i
+- 0.8869 \cdot \text{election\_age}_i
++ 4.0386 \cdot \text{partyRepublican}_i
+- 9.5035 \cdot \text{partyThirdParty}_i
++ \varepsilon_i
+$$
+
+
+
+
 
 
 ## Questions and Answers
 
 Recall our original question: Do winning candidates live longer? Well, do they? And do other candidate characteristics matter?
 
+Yes wining candidates, live longer. 
+
+
 * First, let's look at individual variables which are included in our DGM. Hint: Use `plot_predictions()`
 
+
+Republicans live longer and data is scattered for ThirdParty
+
+Election_age and lived_after have an inverse or negative relationship. 
+
+```{r}
+fit_causal |>
+  predictions() 
+
+```
+
+
+```{r}
+fit_causal |>
+  plot_predictions(condition = c("party")) 
+
+```
+```{r}
+fit_causal |>
+  plot_predictions(condition = c("election_age")) 
+
+```
+
+connect the results of each plot to the parameters in the DGM 
+
+
+# basically means that election_age has a neg corre;lation so neg intrcept , since republican live longer should-ve seen positive intercept 
+
+# graph matches tibble of conf.int 
+
 * Second, combine several variables --- and think about which ones you should select --- into a nice looking plot. There is no wrong answer! But some plots look better than others.
+
+
+```{r}
+fit_causal |>
+  plot_predictions(condition = c("election_result", "election_age", "party")) 
+
+
+# best odds = Republican + younger-age (election_age = 32) + winning election 
+```
+
+
 
 * If there is time, use the `draw = FALSE` option to `plot_predictions()` to pull out the raw data. Then, tell an AI about that tibble and ask for some nice ggplot code. Pay special attention to the subtitle.
 
 
+```{r}
+fit_causal |>
+  plot_predictions(condition = c("election_result", "election_age", "party"), draw = FALSE) 
+
+```
+
+Subtitle = "Model Predictiosn by candidate party, age, and win/loss outcome" - considering all the factors
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Ensure election_age is numeric
+preds <- fit_causal |> 
+  plot_predictions(condition = c("election_result", "election_age", "party"), draw = FALSE) |>
+  mutate(
+    election_age = as.numeric(election_age),  # Ensure age is numeric
+    party = factor(party),
+    election_result = factor(election_result)
+  )
+
+# Plot predictions
+ggplot(preds, aes(x = election_age, y = estimate, color = party)) +
+  geom_line(aes(linetype = election_result), size = 1) +
+  geom_ribbon(
+    aes(ymin = conf.low, ymax = conf.high, fill = party),
+    alpha = 0.2, color = NA
+  ) +
+  labs(
+    title = "Predicted Lifespan After Election",
+    subtitle = "Model predictions by candidate party, age, and win/loss outcome",
+    x = "Candidate Age at Time of Election",
+    y = "Predicted Years Lived After Election",
+    color = "Party",
+    fill = "Party",
+    linetype = "Election Result"
+  )
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    strip.text = element_text(face = "bold")
+  )
+```
 
 ## Humility
 
 * What is, truly, your best guess as to the causal effect of winning an election on longevity?
+
+```{r}
+fit_causal |>
+  plot_predictions(condition = c("election_result", "election_age", "party")) 
+
+
+# best odds = Republican + younger-age (election_age = 32) + winning election 
+```
+
+
+So the causal effect of winning an election on longevity is Republican + younger-age (election_age = 32) + winning election 
+
+
 
 
