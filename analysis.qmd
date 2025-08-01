@@ -105,7 +105,8 @@ tribble(
 
 ```{r}
 fit_causal |>
-  tidy(conf.int = TRUE)
+  tidy(conf.int = TRUE) |>
+  plot_predictions(condition = c("election_result"))
 
 ```
 
@@ -183,7 +184,7 @@ Election_age and lived_after have an inverse or negative relationship.
 
 ```{r}
 fit_causal |>
-  predictions() 
+  plot_predictions(condition = c("election_result")) 
 
 ```
 
@@ -284,3 +285,6 @@ So the causal effect of winning an election on longevity is Republican + younger
 
 
 
+
+
+I predict taht candidates who win an election lvie a few years longer than they would have otherwise, but I would not be suprised if, in fact, the effect is actually negative. My best guess is 3 years +/- 8 b/cuz we do a lot of assumptions. Our initial sentences/conclusion we attempt to not even give a precise number. 
